@@ -5,7 +5,7 @@ import { InvoiceLayout } from "@/app/components";
 import PaymentInstructionsSection from "./PaymentInstructionsSection";
 
 // Helpers
-import { formatNumberWithCommas, formatNumberWithCommasNoDecimals, isDataUrl, isImageUrl } from "@/lib/helpers";
+import { formatNumberWithCommas, formatNumberWithCommasNoDecimals, isDataUrl, isImageUrl, formatInvoiceDate } from "@/lib/helpers";
 import { DATE_OPTIONS } from "@/lib/variables";
 
 // Types
@@ -128,12 +128,7 @@ const InvoiceTemplate = (data: InvoiceType) => {
               <p className="text-base">
                 <span className="font-bold text-gray-900">Date:</span>{" "}
                 <span className="font-semibold text-gray-800">
-                  {details.invoiceDate
-                    ? new Date(details.invoiceDate).toLocaleDateString(
-                        "en-US",
-                        DATE_OPTIONS
-                      )
-                    : "-"}
+                  {formatInvoiceDate(details.invoiceDate, DATE_OPTIONS)}
                 </span>
               </p>
             </div>

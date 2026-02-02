@@ -293,6 +293,135 @@ const fileToBuffer = async (file: File) => {
     return pdfBuffer;
 };
 
+/**
+ * Safely parses a date value (Date object, ISO string, or formatted string) and returns a Date object.
+ * Uses UTC methods to avoid timezone shifts when parsing ISO strings.
+ * 
+ * @param {Date | string} dateValue - The date value to parse (can be Date object, ISO string, or formatted string)
+ * @returns {Date} A Date object representing the date, or current date if parsing fails
+ */
+const parseInvoiceDate = (dateValue: Date | string | undefined | null): Date => {
+    if (!dateValue) {
+        return new Date();
+    }
+
+    // If it's already a Date object, return it
+    if (dateValue instanceof Date) {
+        // Check if it's a valid date
+        if (isNaN(dateValue.getTime())) {
+            return new Date();
+        }
+        return dateValue;
+    }
+
+    // If it's a string, try to parse it
+    if (typeof dateValue === 'string') {
+        // If it's an ISO string (e.g., "2024-01-15T00:00:00.000Z" or "2024-01-15")
+        if (dateValue.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
+            // Extract date components directly from ISO string to avoid timezone conversion
+            const isoMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (isoMatch) {
+                const year = parseInt(isoMatch[1], 10);
+                const month = parseInt(isoMatch[2], 10) - 1; // Month is 0-indexed
+                const day = parseInt(isoMatch[3], 10);
+                // Create date using UTC to avoid timezone shifts
+                return new Date(Date.UTC(year, month, day));
+            }
+            // Fallback to regular parsing
+            const date = new Date(dateValue);
+            if (!isNaN(date.getTime())) {
+                // Use UTC components to avoid timezone conversion
+                return new Date(Date.UTC(
+                    date.getUTCFullYear(),
+                    date.getUTCMonth(),
+                    date.getUTCDate()
+                ));
+            }
+        } else {
+            // Try parsing as a regular date string
+            const date = new Date(dateValue);
+            if (!isNaN(date.getTime())) {
+                return date;
+            }
+        }
+    }
+
+    // If all parsing fails, return current date
+    return new Date();
+};
+
+/**
+ * Formats a date value to "DD-MMM-YY" format (e.g., "21-Dec-22")
+ * Uses UTC methods to avoid timezone shifts.
+ * 
+ * @param {Date | string} dateValue - The date value to format
+ * @returns {string} Formatted date string in "DD-MMM-YY" format
+ */
+const formatStatementDate = (dateValue: Date | string | undefined | null): string => {
+    const date = parseInvoiceDate(dateValue);
+    
+    // Use UTC methods to avoid timezone shifts
+    const day = date.getUTCDate();
+    const monthIndex = date.getUTCMonth();
+    const year = date.getUTCFullYear().toString().slice(-2);
+    
+    // Map month index to short month name
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = monthNames[monthIndex];
+    
+    return `${day}-${month}-${year}`;
+};
+
+/**
+ * Formats an invoice date using DATE_OPTIONS format (e.g., "January 15, 2024")
+ * Handles Date objects (from date picker) and strings (from database) correctly.
+ * 
+ * @param {Date | string} dateValue - The date value to format
+ * @param {Intl.DateTimeFormatOptions} options - Optional date formatting options (defaults to DATE_OPTIONS)
+ * @returns {string} Formatted date string
+ */
+const formatInvoiceDate = (
+    dateValue: Date | string | undefined | null,
+    options?: Intl.DateTimeFormatOptions
+): string => {
+    if (!dateValue) {
+        return "-";
+    }
+
+    let date: Date;
+    let useLocalComponents = false;
+
+    // If it's already a Date object (from date picker), extract local date components
+    // Date objects from date pickers represent dates at midnight local time
+    if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
+        date = dateValue;
+        useLocalComponents = true; // Use local components for Date objects from picker
+    } else {
+        // For strings (from database/API), parse and use UTC-aware methods
+        date = parseInvoiceDate(dateValue);
+        useLocalComponents = false; // Use UTC components for parsed strings
+    }
+
+    // Extract date components based on source
+    const year = useLocalComponents ? date.getFullYear() : date.getUTCFullYear();
+    const month = useLocalComponents ? date.getMonth() : date.getUTCMonth();
+    const day = useLocalComponents ? date.getDate() : date.getUTCDate();
+    
+    // Create a new date in local timezone with the extracted components
+    // This ensures the date displayed matches what the user selected
+    const localDate = new Date(year, month, day);
+    
+    // Use provided options or default DATE_OPTIONS
+    const formatOptions = options || {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    };
+    
+    return localDate.toLocaleDateString("en-US", formatOptions);
+};
+
 export {
     formatNumberWithCommas,
     formatNumberWithCommasNoDecimals,
@@ -305,4 +434,7 @@ export {
     getNextInvoiceNumber,
     getInvoiceTemplate,
     fileToBuffer,
+    parseInvoiceDate,
+    formatStatementDate,
+    formatInvoiceDate,
 };

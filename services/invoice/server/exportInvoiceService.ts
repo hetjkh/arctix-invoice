@@ -13,6 +13,7 @@ import ExcelJS from "exceljs";
 // Helpers
 import { flattenObject, formatNumberWithCommas, formatNumberWithCommasNoDecimals, isImageUrl, isDataUrl } from "@/lib/helpers";
 import { DATE_OPTIONS } from "@/lib/variables";
+import { formatInvoiceDate } from "@/lib/helpers";
 
 // Types
 import { ExportTypes } from "@/types";
@@ -173,9 +174,7 @@ export async function exportInvoiceService(req: NextRequest) {
                     sheet.getCell(`F${currentRow + 1}`).font = { bold: true };
                     sheet.getCell(`F${currentRow + 1}`).alignment = { horizontal: 'right' };
                     
-                    const invoiceDate = details.invoiceDate 
-                        ? new Date(details.invoiceDate).toLocaleDateString("en-US", DATE_OPTIONS)
-                        : "-";
+                    const invoiceDate = formatInvoiceDate(details.invoiceDate, DATE_OPTIONS);
                     sheet.getCell(`F${currentRow + 2}`).value = `Issued: ${invoiceDate}`;
                     sheet.getCell(`F${currentRow + 2}`).font = { bold: true };
                     sheet.getCell(`F${currentRow + 2}`).alignment = { horizontal: 'right' };

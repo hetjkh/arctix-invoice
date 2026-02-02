@@ -1,6 +1,6 @@
 import React from "react";
 import { InvoiceType } from "@/types";
-import { formatNumberWithCommas, isImageUrl, isDataUrl } from "@/lib/helpers";
+import { formatNumberWithCommas, isImageUrl, isDataUrl, formatStatementDate } from "@/lib/helpers";
 import { DATE_OPTIONS } from "@/lib/variables";
 
 type StatementData = {
@@ -23,8 +23,8 @@ const StatementTemplate = (data: StatementData) => {
     
     // Sort invoices by date first
     const sortedInvoices = [...invoices].sort((a, b) => {
-        const dateA = new Date(a.details.invoiceDate).getTime();
-        const dateB = new Date(b.details.invoiceDate).getTime();
+        const dateA = a.details.invoiceDate ? new Date(a.details.invoiceDate).getTime() : 0;
+        const dateB = b.details.invoiceDate ? new Date(b.details.invoiceDate).getTime() : 0;
         return dateA - dateB;
     });
 
@@ -176,11 +176,8 @@ const StatementTemplate = (data: StatementData) => {
                                 const invoice = row.invoice;
                                 const item = row.item;
                                 
-                                const invoiceDate = new Date(invoice.details.invoiceDate);
-                                const day = invoiceDate.getDate();
-                                const month = invoiceDate.toLocaleDateString("en-US", { month: "short" });
-                                const year = invoiceDate.getFullYear().toString().slice(-2);
-                                const formattedDate = `${day}-${month}-${year}`;
+                                // Use helper function to format date consistently and avoid timezone issues
+                                const formattedDate = formatStatementDate(invoice.details.invoiceDate);
 
                                 // Get route from this specific item's description, service type, or name
                                 const route = item.description || item.serviceType || item.name || "-";

@@ -103,7 +103,15 @@ const DocumentList = ({ invoiceId, onDocumentSelect, showUpload = true }: Docume
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString("en-US", {
+        // Use parseInvoiceDate helper to avoid timezone issues
+        const { parseInvoiceDate } = require("@/lib/helpers");
+        const date = parseInvoiceDate(dateString);
+        // Use UTC methods to avoid timezone shifts
+        const year = date.getUTCFullYear();
+        const month = date.getUTCMonth();
+        const day = date.getUTCDate();
+        const localDate = new Date(year, month, day);
+        return localDate.toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",
             day: "numeric",
