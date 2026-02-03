@@ -33,7 +33,7 @@ import StatementPreviewModal from "@/app/components/modals/invoice/StatementPrev
 import { useInvoiceContext } from "@/contexts/InvoiceContext";
 
 // Helpers
-import { formatNumberWithCommas } from "@/lib/helpers";
+import { formatNumberWithCommas, parseInvoiceDate as parseInvoiceDateHelper, formatInvoiceDate } from "@/lib/helpers";
 
 // Variables
 import { DATE_OPTIONS, SHORT_DATE_OPTIONS, FORM_DEFAULT_VALUES } from "@/lib/variables";
@@ -206,23 +206,22 @@ const SavedInvoicesList = ({ setModalState }: SavedInvoicesListProps) => {
         return Array.from(currencies).sort();
     }, [savedInvoices]);
 
-    // Helper function to parse invoice date
+    // Helper function to parse invoice date - uses UTC-aware parsing from helpers
     const parseInvoiceDate = (invoice: InvoiceType): Date => {
         if (invoice.details.invoiceDate) {
-            const date = new Date(invoice.details.invoiceDate);
-            return isNaN(date.getTime()) ? new Date(0) : date;
+            return parseInvoiceDateHelper(invoice.details.invoiceDate);
         }
         return new Date(0);
     };
 
-    // Helper function to get month from date
+    // Helper function to get month from date - uses UTC methods to avoid timezone issues
     const getMonthKey = (date: Date): string => {
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
     };
 
-    // Helper function to get year from date
+    // Helper function to get year from date - uses UTC methods to avoid timezone issues
     const getYearKey = (date: Date): string => {
-        return String(date.getFullYear());
+        return String(date.getUTCFullYear());
     };
 
     // Filter invoices based on search query, filter type, date range, amount range, and currency
@@ -348,18 +347,18 @@ const SavedInvoicesList = ({ setModalState }: SavedInvoicesListProps) => {
 
             switch (groupBy) {
                 case "date":
-                    key = date.toLocaleDateString("en-US", DATE_OPTIONS);
+                    key = formatInvoiceDate(invoice.details.invoiceDate, DATE_OPTIONS);
                     sortKey = date.getTime();
                     break;
                 case "month":
                     // Format: "January 2024", "February 2024", etc.
-                    key = date.toLocaleDateString("en-US", { year: "numeric", month: "long" });
+                    key = formatInvoiceDate(invoice.details.invoiceDate, { year: "numeric", month: "long" });
                     // Sort key: year * 100 + month (e.g., 202401 for January 2024)
-                    sortKey = date.getFullYear() * 100 + date.getMonth() + 1;
+                    sortKey = date.getUTCFullYear() * 100 + date.getUTCMonth() + 1;
                     break;
                 case "year":
                     key = getYearKey(date);
-                    sortKey = date.getFullYear();
+                    sortKey = date.getUTCFullYear();
                     break;
                 case "sender":
                     key = invoice.sender.name || "Unknown Sender";
@@ -499,7 +498,7 @@ const SavedInvoicesList = ({ setModalState }: SavedInvoicesListProps) => {
                                 Invoice #{invoice.details.invoiceNumber}{" "}
                             </p>
                             <small className={cn("text-gray-500", isSelected && "dark:text-gray-300")}>
-                                Date: {parseInvoiceDate(invoice).toLocaleDateString("en-US", DATE_OPTIONS)} | 
+                                Date: {formatInvoiceDate(invoice.details.invoiceDate, DATE_OPTIONS)} | 
                                 Updated: {invoice.details.updatedAt 
                                     ? new Date(invoice.details.updatedAt).toLocaleDateString("en-US", SHORT_DATE_OPTIONS)
                                     : "N/A"}

@@ -4,7 +4,7 @@ import React from "react";
 import { InvoiceLayout } from "@/app/components";
 
 // Helpers
-import { formatNumberWithCommas, formatNumberWithCommasNoDecimals, isDataUrl, isImageUrl } from "@/lib/helpers";
+import { formatNumberWithCommas, formatNumberWithCommasNoDecimals, isDataUrl, isImageUrl, formatInvoiceDate } from "@/lib/helpers";
 
 // Variables
 import { DATE_OPTIONS } from "@/lib/variables";
@@ -75,7 +75,7 @@ const InvoiceTemplate = (data: InvoiceType) => {
 						<dl className='grid sm:grid-cols-6 gap-x-3'>
 							<dt className='col-span-3 font-semibold text-gray-800'>Invoice date:</dt>
 							<dd className='col-span-3 text-gray-500'>
-								{new Date(details.invoiceDate).toLocaleDateString("en-US", DATE_OPTIONS)}
+								{formatInvoiceDate(details.invoiceDate, DATE_OPTIONS)}
 							</dd>
 						</dl>
 						{details.numberOfPassengers && (

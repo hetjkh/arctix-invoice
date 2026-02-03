@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { InvoiceType } from "@/types";
-import { formatNumberWithCommas } from "@/lib/helpers";
+import { formatNumberWithCommas, formatStatementDate } from "@/lib/helpers";
 import { DATE_OPTIONS } from "@/lib/variables";
 
 // ShadCn
@@ -68,8 +68,8 @@ const StatementPreviewModal = ({
     
     // Sort invoices by date first
     const sortedInvoices = [...invoices].sort((a, b) => {
-        const dateA = new Date(a.details.invoiceDate).getTime();
-        const dateB = new Date(b.details.invoiceDate).getTime();
+        const dateA = a.details.invoiceDate ? new Date(a.details.invoiceDate).getTime() : 0;
+        const dateB = b.details.invoiceDate ? new Date(b.details.invoiceDate).getTime() : 0;
         return dateA - dateB;
     });
 
@@ -127,12 +127,9 @@ const StatementPreviewModal = ({
         }
     };
 
-    // Format date like "21-Dec-22"
-    const formatDate = (date: Date) => {
-        const day = date.getDate();
-        const month = date.toLocaleDateString("en-US", { month: "short" });
-        const year = date.getFullYear().toString().slice(-2);
-        return `${day}-${month}-${year}`;
+    // Format date like "21-Dec-22" - using helper function for consistency
+    const formatDate = (dateValue: Date | string | undefined | null) => {
+        return formatStatementDate(dateValue);
     };
 
     const handleDownload = async () => {
@@ -319,8 +316,8 @@ const StatementPreviewModal = ({
                                         const invoice = row.invoice;
                                         const item = row.item;
                                         
-                                        const invoiceDate = new Date(invoice.details.invoiceDate);
-                                        const formattedDate = formatDate(invoiceDate);
+                                        // Use helper function to format date consistently and avoid timezone issues
+                                        const formattedDate = formatStatementDate(invoice.details.invoiceDate);
 
                                         // Get route from this specific item's description, service type, or name
                                         const route = item.description || item.serviceType || item.name || "-";
