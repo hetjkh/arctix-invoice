@@ -36,7 +36,7 @@ import { useInvoiceContext } from "@/contexts/InvoiceContext";
 import { formatNumberWithCommas } from "@/lib/helpers";
 
 // Variables
-import { DATE_OPTIONS, FORM_DEFAULT_VALUES } from "@/lib/variables";
+import { DATE_OPTIONS, SHORT_DATE_OPTIONS, FORM_DEFAULT_VALUES } from "@/lib/variables";
 
 // Types
 import { InvoiceType } from "@/types";
@@ -500,7 +500,9 @@ const SavedInvoicesList = ({ setModalState }: SavedInvoicesListProps) => {
                             </p>
                             <small className={cn("text-gray-500", isSelected && "dark:text-gray-300")}>
                                 Date: {parseInvoiceDate(invoice).toLocaleDateString("en-US", DATE_OPTIONS)} | 
-                                Updated: {invoice.details.updatedAt || "N/A"}
+                                Updated: {invoice.details.updatedAt 
+                                    ? new Date(invoice.details.updatedAt).toLocaleDateString("en-US", SHORT_DATE_OPTIONS)
+                                    : "N/A"}
                             </small>
 
                             <div className="mt-2">
