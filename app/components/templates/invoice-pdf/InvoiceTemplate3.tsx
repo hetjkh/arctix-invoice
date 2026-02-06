@@ -383,8 +383,8 @@ const InvoiceTemplate = (data: InvoiceType) => {
         </div>
 
         {/* Totals */}
-        <div className="grid md:grid-cols-2 gap-4 items-start">
-          <div className="space-y-3 text-sm text-gray-700">
+        <div className="grid md:grid-cols-2 gap-4 items-start invoice-footer-section">
+          <div className="space-y-3 text-sm text-gray-700 invoice-totals-section">
             {details.additionalNotes && (
               <div>
                 <p className="uppercase text-xs font-semibold tracking-widest text-gray-500">
@@ -403,7 +403,7 @@ const InvoiceTemplate = (data: InvoiceType) => {
             )}
           </div>
 
-          <div className="border border-gray-300 rounded-lg p-3 space-y-2 bg-gray-50">
+          <div className="border border-gray-300 rounded-lg p-3 space-y-2 bg-gray-50 invoice-totals-section">
             <div className="flex justify-between text-sm text-gray-700">
               <span className="font-semibold">Subtotal</span>
               <span>
@@ -464,7 +464,9 @@ const InvoiceTemplate = (data: InvoiceType) => {
         </div>
 
         {/* Payment instructions + Receiver signature section (toggled) */}
-        <PaymentInstructionsSection data={data} />
+        <div className="invoice-payment-section">
+          <PaymentInstructionsSection data={data} />
+        </div>
       </div>
     </InvoiceLayout>
   );
