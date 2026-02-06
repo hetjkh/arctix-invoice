@@ -44,6 +44,10 @@ const defaultInvoiceContext = {
   invoicePdf: new Blob(),
   invoicePdfLoading: false,
   savedInvoices: [] as InvoiceType[],
+  hasMoreInvoices: false,
+  loadingInvoices: false,
+  totalInvoiceCount: 0,
+  loadMoreInvoices: async () => {},
   pdfUrl: null as string | null,
   onFormSubmit: (values: InvoiceType) => {},
   newInvoice: () => {},
@@ -98,26 +102,38 @@ export const InvoiceContextProvider = ({
 
   // Saved invoices
   const [savedInvoices, setSavedInvoices] = useState<InvoiceType[]>([]);
+  const [hasMoreInvoices, setHasMoreInvoices] = useState<boolean>(false);
+  const [loadingInvoices, setLoadingInvoices] = useState<boolean>(false);
+  const [totalInvoiceCount, setTotalInvoiceCount] = useState<number>(0);
 
   // Load invoices from database or localStorage
   useEffect(() => {
     const loadInvoices = async () => {
       if (user) {
-        // Load from database
+        // Load from database with pagination (5 invoices initially)
+        setLoadingInvoices(true);
         try {
-          const response = await fetch("/api/invoice/list");
+          const response = await fetch("/api/invoice/list?limit=5&skip=0");
           if (response.ok) {
             const data = await response.json();
             setSavedInvoices(data.invoices || []);
+            setHasMoreInvoices(data.hasMore || false);
+            setTotalInvoiceCount(data.totalCount || 0);
           } else {
             setSavedInvoices([]);
+            setHasMoreInvoices(false);
+            setTotalInvoiceCount(0);
           }
         } catch (error) {
           console.error("Error loading invoices:", error);
           setSavedInvoices([]);
+          setHasMoreInvoices(false);
+          setTotalInvoiceCount(0);
+        } finally {
+          setLoadingInvoices(false);
         }
       } else {
-        // Load from localStorage
+        // Load from localStorage (no pagination for localStorage)
         if (typeof window !== "undefined") {
           try {
             const savedInvoicesJSON = window.localStorage.getItem("savedInvoices");
@@ -125,11 +141,15 @@ export const InvoiceContextProvider = ({
               ? JSON.parse(savedInvoicesJSON)
               : [];
             setSavedInvoices(savedInvoicesDefault);
+            setHasMoreInvoices(false);
+            setTotalInvoiceCount(savedInvoicesDefault.length);
           } catch (error) {
             console.error("Error parsing saved invoices from localStorage:", error);
             // Clear corrupted data
             window.localStorage.removeItem("savedInvoices");
             setSavedInvoices([]);
+            setHasMoreInvoices(false);
+            setTotalInvoiceCount(0);
           }
         }
       }
@@ -137,6 +157,25 @@ export const InvoiceContextProvider = ({
 
     loadInvoices();
   }, [user]);
+
+  // Function to load more invoices
+  const loadMoreInvoices = async () => {
+    if (!user || loadingInvoices || !hasMoreInvoices) return;
+
+    setLoadingInvoices(true);
+    try {
+      const response = await fetch(`/api/invoice/list?limit=5&skip=${savedInvoices.length}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSavedInvoices((prev) => [...prev, ...(data.invoices || [])]);
+        setHasMoreInvoices(data.hasMore || false);
+      }
+    } catch (error) {
+      console.error("Error loading more invoices:", error);
+    } finally {
+      setLoadingInvoices(false);
+    }
+  };
 
   // Load invoice by ID from query parameter
   useEffect(() => {
@@ -500,18 +539,21 @@ export const InvoiceContextProvider = ({
             
             // Reload invoices from database to ensure consistency across all views
             try {
-              const listResponse = await fetch("/api/invoice/list", {
+              const listResponse = await fetch("/api/invoice/list?limit=5&skip=0", {
                 cache: "no-store",
               });
               if (listResponse.ok) {
                 const data = await listResponse.json();
                 setSavedInvoices(data.invoices || []);
+                setHasMoreInvoices(data.hasMore || false);
+                setTotalInvoiceCount(data.totalCount || 0);
               } else {
                 console.error("Failed to reload invoices after delete");
                 // Fallback: Remove from local state if reload fails
                 const updatedInvoices = [...savedInvoices];
                 updatedInvoices.splice(index, 1);
                 setSavedInvoices(updatedInvoices);
+                setTotalInvoiceCount(totalInvoiceCount - 1);
               }
             } catch (reloadError) {
               console.error("Error reloading invoices:", reloadError);
@@ -519,6 +561,7 @@ export const InvoiceContextProvider = ({
               const updatedInvoices = [...savedInvoices];
               updatedInvoices.splice(index, 1);
               setSavedInvoices(updatedInvoices);
+              setTotalInvoiceCount(totalInvoiceCount - 1);
             }
           } else {
             const error = await response.json();
@@ -802,6 +845,10 @@ export const InvoiceContextProvider = ({
         invoicePdf,
         invoicePdfLoading,
         savedInvoices,
+        hasMoreInvoices,
+        loadingInvoices,
+        totalInvoiceCount,
+        loadMoreInvoices,
         pdfUrl,
         onFormSubmit,
         newInvoice,

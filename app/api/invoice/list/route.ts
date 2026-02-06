@@ -16,13 +16,27 @@ export async function GET(req: NextRequest) {
             );
         }
 
+        // Get pagination parameters from query string
+        const { searchParams } = new URL(req.url);
+        const limit = parseInt(searchParams.get("limit") || "5", 10);
+        const skip = parseInt(searchParams.get("skip") || "0", 10);
+
         const db = await getDb();
         const invoicesCollection = db.collection<InvoiceDocument>("invoices");
 
+        // Query invoices for the user, sorted by most recently updated
+        // Note: Ensure there's an index on { userId: 1, updatedAt: -1 } for optimal performance
         const invoices = await invoicesCollection
             .find({ userId: new ObjectId(user.userId) })
             .sort({ updatedAt: -1 })
+            .skip(skip)
+            .limit(limit)
             .toArray();
+
+        // Get total count for pagination info
+        const totalCount = await invoicesCollection.countDocuments({ 
+            userId: new ObjectId(user.userId) 
+        });
 
         // Remove MongoDB-specific fields and convert to plain objects
         const formattedInvoices = invoices.map((invoice) => {
@@ -43,7 +57,11 @@ export async function GET(req: NextRequest) {
         });
 
         const response = NextResponse.json(
-            { invoices: formattedInvoices },
+            { 
+                invoices: formattedInvoices,
+                totalCount,
+                hasMore: skip + limit < totalCount
+            },
             { status: 200 }
         );
         

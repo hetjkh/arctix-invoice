@@ -15,6 +15,9 @@ import {
 // Components
 import { SavedPaymentInfoList } from "@/app/components";
 
+// Contexts
+import { useAuth } from "@/contexts/AuthContext";
+
 // Variables
 import { LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY } from "@/lib/variables";
 
@@ -46,29 +49,73 @@ const SavedPaymentInfoModal = ({
         []
     );
 
+    const { user } = useAuth();
+
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            const saved = window.localStorage.getItem(
-                LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY
-            );
-            if (saved) {
+        const loadPaymentInfo = async () => {
+            if (user) {
+                // Load from MongoDB
                 try {
-                    setSavedPaymentInfo(JSON.parse(saved));
-                } catch {
+                    const response = await fetch("/api/payment-info/list");
+                    if (response.ok) {
+                        const data = await response.json();
+                        setSavedPaymentInfo(data.paymentInfo || []);
+                    } else {
+                        setSavedPaymentInfo([]);
+                    }
+                } catch (error) {
+                    console.error("Error loading payment info:", error);
                     setSavedPaymentInfo([]);
                 }
+            } else {
+                // Fallback to localStorage if not logged in
+                if (typeof window !== "undefined") {
+                    const saved = window.localStorage.getItem(
+                        LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY
+                    );
+                    if (saved) {
+                        try {
+                            setSavedPaymentInfo(JSON.parse(saved));
+                        } catch {
+                            setSavedPaymentInfo([]);
+                        }
+                    }
+                }
             }
-        }
-    }, [open]);
+        };
 
-    const handleDelete = (id: string) => {
-        const updated = savedPaymentInfo.filter((info) => info.id !== id);
-        setSavedPaymentInfo(updated);
-        if (typeof window !== "undefined") {
-            window.localStorage.setItem(
-                LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY,
-                JSON.stringify(updated)
-            );
+        if (open) {
+            loadPaymentInfo();
+        }
+    }, [open, user]);
+
+    const handleDelete = async (id: string) => {
+        if (user) {
+            // Delete from MongoDB
+            try {
+                const response = await fetch(`/api/payment-info/${id}`, {
+                    method: "DELETE",
+                });
+                if (response.ok) {
+                    const updated = savedPaymentInfo.filter((info) => info.id !== id);
+                    setSavedPaymentInfo(updated);
+                } else {
+                    alert("Failed to delete payment information");
+                }
+            } catch (error) {
+                console.error("Error deleting payment info:", error);
+                alert("Failed to delete payment information");
+            }
+        } else {
+            // Fallback to localStorage if not logged in
+            const updated = savedPaymentInfo.filter((info) => info.id !== id);
+            setSavedPaymentInfo(updated);
+            if (typeof window !== "undefined") {
+                window.localStorage.setItem(
+                    LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY,
+                    JSON.stringify(updated)
+                );
+            }
         }
     };
 

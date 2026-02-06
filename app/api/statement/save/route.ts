@@ -5,12 +5,23 @@ import { StatementDocument } from "@/models/Statement";
 import { InvoiceType } from "@/types";
 import { ObjectId } from "mongodb";
 
+type BankDetail = {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    iban?: string;
+    swiftCode?: string;
+};
+
 type StatementRequest = {
     invoices: InvoiceType[];
     title?: string;
     clientId?: string;
     clientEmail?: string;
     billedToName?: string;
+    statementDateFrom?: string; // Custom "from" date to display in "Generated:" field
+    statementDateTo?: string; // Custom "to" date to display in "Generated:" field
+    bankDetails?: BankDetail[]; // Selected bank details to display
 };
 
 export async function POST(req: NextRequest) {
@@ -49,6 +60,9 @@ export async function POST(req: NextRequest) {
             clientEmail: clientEmail,
             title: statementData.title || "STATEMENT",
             billedToName: statementData.billedToName,
+            statementDateFrom: statementData.statementDateFrom,
+            statementDateTo: statementData.statementDateTo,
+            bankDetails: statementData.bankDetails,
             invoices: statementData.invoices,
             createdAt: now,
             updatedAt: now,

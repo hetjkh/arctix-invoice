@@ -41,6 +41,9 @@ export async function GET(
             invoices: statement.invoices,
             title: statement.title || "STATEMENT",
             billedToName: statement.billedToName,
+            statementDateFrom: statement.statementDateFrom,
+            statementDateTo: statement.statementDateTo,
+            bankDetails: statement.bankDetails,
         });
 
         const request = new NextRequest(new URL("/api/invoice/statement", req.url), {

@@ -67,7 +67,15 @@ type SortType =
 type GroupByType = "none" | "date" | "month" | "year" | "sender" | "receiver" | "currency";
 
 const SavedInvoicesList = ({ setModalState }: SavedInvoicesListProps) => {
-    const { savedInvoices, onFormSubmit, deleteInvoice } = useInvoiceContext();
+    const { 
+        savedInvoices, 
+        onFormSubmit, 
+        deleteInvoice, 
+        hasMoreInvoices, 
+        loadingInvoices, 
+        totalInvoiceCount,
+        loadMoreInvoices 
+    } = useInvoiceContext();
     const [searchQuery, setSearchQuery] = useState("");
     const [filterType, setFilterType] = useState<FilterType>("all");
     const [sortType, setSortType] = useState<SortType>("date-desc");
@@ -79,6 +87,7 @@ const SavedInvoicesList = ({ setModalState }: SavedInvoicesListProps) => {
     const [selectedCurrency, setSelectedCurrency] = useState<string>("all");
     const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<number>>(new Set());
     const [showStatementPreview, setShowStatementPreview] = useState(false);
+    const [loadingInvoiceId, setLoadingInvoiceId] = useState<string | number | null>(null);
 
     const { reset } = useFormContext<InvoiceType>();
 
@@ -132,34 +141,36 @@ const SavedInvoicesList = ({ setModalState }: SavedInvoicesListProps) => {
     };
 
     /**
-     * Transform date values for next submission
-     *
-     * @param {InvoiceType} selected - The selected invoice
-     */
-    const transformDates = (selected: InvoiceType) => {
-        if (selected.details.dueDate) {
-            selected.details.dueDate = new Date(
-                selected.details.dueDate
-            ).toLocaleDateString("en-US", DATE_OPTIONS);
-        }
-        selected.details.invoiceDate = new Date(
-            selected.details.invoiceDate
-        ).toLocaleDateString("en-US", DATE_OPTIONS);
-    };
-
-    /**
      * Loads a given invoice into the form.
      *
      * @param {InvoiceType} selectedInvoice - The selected invoice
+     * @param {number} originalIdx - The original index of the invoice
      */
-    const load = (selectedInvoice: InvoiceType) => {
+    const load = async (selectedInvoice: InvoiceType, originalIdx: number) => {
         if (selectedInvoice) {
-            updateFields(selectedInvoice);
-            reset(selectedInvoice);
-            transformDates(selectedInvoice);
+            // Set loading state
+            const invoiceId = (selectedInvoice as any).id || (selectedInvoice as any)._id || originalIdx;
+            setLoadingInvoiceId(invoiceId);
+            
+            try {
+                // Use setTimeout to allow UI to update before heavy operation
+                await new Promise(resolve => setTimeout(resolve, 0));
+                
+                // Create a deep copy to avoid mutating the original
+                const invoiceCopy = JSON.parse(JSON.stringify(selectedInvoice));
+                
+                // Update fields on the copy (this handles date conversion and other transformations)
+                updateFields(invoiceCopy);
+                
+                // Reset form with the prepared copy
+                // Note: Dates are already converted to Date objects by updateFields
+                reset(invoiceCopy);
 
-            // Close modal
-            setModalState(false);
+                // Close modal
+                setModalState(false);
+            } finally {
+                setLoadingInvoiceId(null);
+            }
         }
     };
 
@@ -167,9 +178,10 @@ const SavedInvoicesList = ({ setModalState }: SavedInvoicesListProps) => {
      * Loads a given invoice into the form and generates a pdf by submitting the form.
      *
      * @param {InvoiceType} selectedInvoice - The selected invoice
+     * @param {number} originalIdx - The original index of the invoice
      */
-    const loadAndGeneratePdf = (selectedInvoice: InvoiceType) => {
-        load(selectedInvoice);
+    const loadAndGeneratePdf = async (selectedInvoice: InvoiceType, originalIdx: number) => {
+        await load(selectedInvoice, originalIdx);
 
         // Submit form
         onFormSubmit(selectedInvoice);
@@ -523,18 +535,20 @@ const SavedInvoicesList = ({ setModalState }: SavedInvoicesListProps) => {
                             tooltipLabel="Load invoice details into the form"
                             variant="outline"
                             size="sm"
-                            onClick={() => load(invoice)}
+                            disabled={loadingInvoiceId === ((invoice as any).id || (invoice as any)._id || originalIdx)}
+                            onClick={() => load(invoice, originalIdx)}
                         >
-                            Load
+                            {loadingInvoiceId === ((invoice as any).id || (invoice as any)._id || originalIdx) ? "Loading..." : "Load"}
                         </BaseButton>
 
                         <BaseButton
                             tooltipLabel="Load invoice and generate PDF"
                             variant="outline"
                             size="sm"
-                            onClick={() => loadAndGeneratePdf(invoice)}
+                            disabled={loadingInvoiceId === ((invoice as any).id || (invoice as any)._id || originalIdx)}
+                            onClick={() => loadAndGeneratePdf(invoice, originalIdx)}
                         >
-                            Load & Generate
+                            {loadingInvoiceId === ((invoice as any).id || (invoice as any)._id || originalIdx) ? "Loading..." : "Load & Generate"}
                         </BaseButton>
                         <BaseButton
                             variant="destructive"
@@ -884,6 +898,35 @@ const SavedInvoicesList = ({ setModalState }: SavedInvoicesListProps) => {
                 {savedInvoices.length > 0 && sortedInvoices.length === 0 && (
                     <div className="text-center py-8">
                         <p className="text-muted-foreground">No invoices found matching your filters</p>
+                    </div>
+                )}
+
+                {/* Load More Button */}
+                {hasMoreInvoices && (
+                    <div className="flex justify-center py-4 border-t">
+                        <BaseButton
+                            onClick={loadMoreInvoices}
+                            disabled={loadingInvoices}
+                            variant="outline"
+                            size="sm"
+                        >
+                            {loadingInvoices ? (
+                                <>
+                                    <span className="mr-2">Loading...</span>
+                                </>
+                            ) : (
+                                <>
+                                    Load More ({savedInvoices.length} of {totalInvoiceCount})
+                                </>
+                            )}
+                        </BaseButton>
+                    </div>
+                )}
+
+                {/* Show total count when all invoices are loaded */}
+                {!hasMoreInvoices && savedInvoices.length > 0 && (
+                    <div className="text-center py-2 text-sm text-muted-foreground">
+                        Showing all {totalInvoiceCount} invoice{totalInvoiceCount !== 1 ? 's' : ''}
                     </div>
                 )}
             </div>

@@ -12,10 +12,21 @@ import { ENV, TAILWIND_CDN } from "@/lib/variables";
 // Types
 import { InvoiceType } from "@/types";
 
+type BankDetail = {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    iban?: string;
+    swiftCode?: string;
+};
+
 type StatementRequest = {
     invoices: InvoiceType[];
     title?: string;
     billedToName?: string;
+    statementDateFrom?: string; // Custom "from" date to display in "Generated:" field
+    statementDateTo?: string; // Custom "to" date to display in "Generated:" field
+    bankDetails?: BankDetail[]; // Selected bank details to display
 };
 
 /**
@@ -28,7 +39,7 @@ type StatementRequest = {
  */
 export async function generateStatementService(req: NextRequest) {
     const body: StatementRequest = await req.json();
-    const { invoices, title, billedToName } = body;
+    const { invoices, title, billedToName, statementDateFrom, statementDateTo, bankDetails } = body;
     let browser;
     let page;
 
@@ -47,7 +58,7 @@ export async function generateStatementService(req: NextRequest) {
     try {
         const ReactDOMServer = (await import("react-dom/server")).default;
         const htmlTemplate = ReactDOMServer.renderToStaticMarkup(
-            StatementTemplate({ invoices, title, billedToName })
+            StatementTemplate({ invoices, title, billedToName, statementDateFrom, statementDateTo, bankDetails })
         );
 
         if (ENV === "production") {
@@ -83,6 +94,13 @@ export async function generateStatementService(req: NextRequest) {
             format: "a4",
             printBackground: true,
             preferCSSPageSize: true,
+            displayHeaderFooter: false,
+            margin: {
+                top: '0.5cm',
+                right: '0.5cm',
+                bottom: '0.5cm',
+                left: '0.5cm',
+            },
         });
 
         return new NextResponse(new Blob([pdf], { type: "application/pdf" }), {

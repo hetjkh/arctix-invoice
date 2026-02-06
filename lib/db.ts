@@ -93,6 +93,15 @@ export async function initializeIndexes(): Promise<void> {
             unique: true // Email should be unique
         });
         
+        // Initialize indexes for paymentInfo collection
+        const paymentInfoCollection = db.collection("paymentInfo");
+        
+        // Index on userId - used in almost every payment info query
+        await paymentInfoCollection.createIndex({ userId: 1 }, { background: true });
+        
+        // Compound index on userId and createdAt - used for sorting payment info by user
+        await paymentInfoCollection.createIndex({ userId: 1, createdAt: -1 }, { background: true });
+        
         console.log("Database indexes initialized successfully");
     } catch (error) {
         console.error("Error initializing database indexes:", error);

@@ -16,6 +16,7 @@ import { LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY, SHORT_DATE_OPTIONS } from "@/lib/
 
 // Hooks
 import useToasts from "@/hooks/useToasts";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Types
 import { InvoiceType } from "@/types";
@@ -38,8 +39,10 @@ const PaymentInformation = () => {
     const { _t } = useTranslationContext();
     const { control, setValue, watch } = useFormContext<InvoiceType>();
     const { saveInvoiceSuccess } = useToasts();
+    const { user } = useAuth();
     const [saveName, setSaveName] = useState("");
     const [saveIndex, setSaveIndex] = useState(0);
+    const [isSaving, setIsSaving] = useState(false);
 
     const PAYMENT_INFO_NAME = "details.paymentInformation";
     
@@ -70,7 +73,7 @@ const PaymentInformation = () => {
         }
     }, []); // Only run once on mount
 
-    const handleSave = (index: number) => {
+    const handleSave = async (index: number) => {
         const currentPaymentInfo = Array.isArray(paymentInfo) ? paymentInfo[index] : paymentInfo;
         
         if (!currentPaymentInfo?.bankName || !currentPaymentInfo?.accountName || !currentPaymentInfo?.accountNumber) {
@@ -80,41 +83,77 @@ const PaymentInformation = () => {
 
         const name = saveName.trim() || `${currentPaymentInfo.bankName} - ${currentPaymentInfo.accountName}`;
         
-        const savedAt = new Date().toLocaleDateString("en-US", SHORT_DATE_OPTIONS);
+        setIsSaving(true);
         
-        const newPaymentInfo: PaymentInfoType = {
-            id: Date.now().toString(),
-            name: name,
-            bankName: currentPaymentInfo.bankName || "",
-            accountName: currentPaymentInfo.accountName || "",
-            accountNumber: currentPaymentInfo.accountNumber || "",
-            iban: currentPaymentInfo.iban || "",
-            swiftCode: currentPaymentInfo.swiftCode || "",
-            savedAt: savedAt,
-        };
-
-        if (typeof window !== "undefined") {
+        if (user) {
+            // Save to MongoDB
             try {
-                const saved = window.localStorage.getItem(LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY);
-                const savedList: PaymentInfoType[] = saved ? JSON.parse(saved) : [];
-                savedList.push(newPaymentInfo);
-                window.localStorage.setItem(
-                    LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY,
-                    JSON.stringify(savedList)
-                );
-                saveInvoiceSuccess();
-                setSaveName("");
+                const response = await fetch("/api/payment-info/save", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        bankName: currentPaymentInfo.bankName || "",
+                        accountName: currentPaymentInfo.accountName || "",
+                        accountNumber: currentPaymentInfo.accountNumber || "",
+                        iban: currentPaymentInfo.iban || "",
+                        swiftCode: currentPaymentInfo.swiftCode || "",
+                    }),
+                });
+
+                if (response.ok) {
+                    saveInvoiceSuccess();
+                    setSaveName("");
+                } else {
+                    const error = await response.json();
+                    alert(error.error || "Failed to save payment information");
+                }
             } catch (error) {
                 console.error("Error saving payment information:", error);
-                // If there's corrupted data, clear it and save fresh
-                const freshList: PaymentInfoType[] = [newPaymentInfo];
-                window.localStorage.setItem(
-                    LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY,
-                    JSON.stringify(freshList)
-                );
-                saveInvoiceSuccess();
-                setSaveName("");
+                alert("Failed to save payment information. Please try again.");
+            } finally {
+                setIsSaving(false);
             }
+        } else {
+            // Fallback to localStorage if not logged in
+            const savedAt = new Date().toLocaleDateString("en-US", SHORT_DATE_OPTIONS);
+            
+            const newPaymentInfo: PaymentInfoType = {
+                id: Date.now().toString(),
+                name: name,
+                bankName: currentPaymentInfo.bankName || "",
+                accountName: currentPaymentInfo.accountName || "",
+                accountNumber: currentPaymentInfo.accountNumber || "",
+                iban: currentPaymentInfo.iban || "",
+                swiftCode: currentPaymentInfo.swiftCode || "",
+                savedAt: savedAt,
+            };
+
+            if (typeof window !== "undefined") {
+                try {
+                    const saved = window.localStorage.getItem(LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY);
+                    const savedList: PaymentInfoType[] = saved ? JSON.parse(saved) : [];
+                    savedList.push(newPaymentInfo);
+                    window.localStorage.setItem(
+                        LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY,
+                        JSON.stringify(savedList)
+                    );
+                    saveInvoiceSuccess();
+                    setSaveName("");
+                } catch (error) {
+                    console.error("Error saving payment information:", error);
+                    const freshList: PaymentInfoType[] = [newPaymentInfo];
+                    window.localStorage.setItem(
+                        LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY,
+                        JSON.stringify(freshList)
+                    );
+                    saveInvoiceSuccess();
+                    setSaveName("");
+                }
+            }
+            setIsSaving(false);
         }
     };
 
