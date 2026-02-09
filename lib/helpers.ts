@@ -352,45 +352,25 @@ const parseInvoiceDate = (dateValue: Date | string | undefined | null): Date => 
 
 /**
  * Formats a date value to "DD-MMM-YY" format (e.g., "21-Dec-22")
- * Handles Date objects (from date picker) and strings (from database) correctly to avoid timezone issues.
- * Uses the same logic as formatInvoiceDate to ensure consistency.
+ * Uses UTC methods to avoid timezone shifts.
  * 
  * @param {Date | string} dateValue - The date value to format
  * @returns {string} Formatted date string in "DD-MMM-YY" format
  */
 const formatStatementDate = (dateValue: Date | string | undefined | null): string => {
-    if (!dateValue) {
-        return "-";
-    }
-
-    let date: Date;
-    let useLocalComponents = false;
-
-    // If it's already a Date object (from date picker), extract local date components
-    // Date objects from date pickers represent dates at midnight local time
-    if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
-        date = dateValue;
-        useLocalComponents = true; // Use local components for Date objects from picker
-    } else {
-        // For strings (from database/API), parse and use UTC-aware methods
-        date = parseInvoiceDate(dateValue);
-        useLocalComponents = false; // Use UTC components for parsed strings
-    }
-
-    // Extract date components based on source (same logic as formatInvoiceDate)
-    const year = useLocalComponents ? date.getFullYear() : date.getUTCFullYear();
-    const monthIndex = useLocalComponents ? date.getMonth() : date.getUTCMonth();
-    const day = useLocalComponents ? date.getDate() : date.getUTCDate();
+    const date = parseInvoiceDate(dateValue);
+    
+    // Use UTC methods to avoid timezone shifts
+    const day = date.getUTCDate();
+    const monthIndex = date.getUTCMonth();
+    const year = date.getUTCFullYear().toString().slice(-2);
     
     // Map month index to short month name
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const month = monthNames[monthIndex];
     
-    // Format year as 2-digit
-    const yearShort = year.toString().slice(-2);
-    
-    return `${day}-${month}-${yearShort}`;
+    return `${day}-${month}-${year}`;
 };
 
 /**
