@@ -150,20 +150,20 @@ const StatementPreviewModal = ({
     const [passengerRows, setPassengerRows] = useState<PassengerRow[]>([]);
     const [totalAmount, setTotalAmount] = useState<number>(0);
     const [currency, setCurrency] = useState<string>("USD");
-
+    
     // Auto-adjust: Recalculate totals when invoices change
     useEffect(() => {
-        // Sort invoices by date first
-        const sortedInvoices = [...invoices].sort((a, b) => {
-            const dateA = a.details.invoiceDate ? new Date(a.details.invoiceDate).getTime() : 0;
-            const dateB = b.details.invoiceDate ? new Date(b.details.invoiceDate).getTime() : 0;
-            return dateA - dateB;
-        });
+    // Sort invoices by date first
+    const sortedInvoices = [...invoices].sort((a, b) => {
+        const dateA = a.details.invoiceDate ? new Date(a.details.invoiceDate).getTime() : 0;
+        const dateB = b.details.invoiceDate ? new Date(b.details.invoiceDate).getTime() : 0;
+        return dateA - dateB;
+    });
 
-        // Create a row for each passenger (item) in each invoice
+    // Create a row for each passenger (item) in each invoice
         const rows: PassengerRow[] = [];
-        sortedInvoices.forEach((invoice) => {
-            invoice.details.items.forEach((item, itemIndex) => {
+    sortedInvoices.forEach((invoice) => {
+        invoice.details.items.forEach((item, itemIndex) => {
                 rows.push({ invoice, item, itemIndex });
             });
         });
@@ -172,12 +172,12 @@ const StatementPreviewModal = ({
 
         // Calculate total amount from all items (auto-adjust)
         const calculatedTotal = rows.reduce((sum, row) => {
-            return sum + (Number(row.item.total) || 0);
-        }, 0);
+        return sum + (Number(row.item.total) || 0);
+    }, 0);
 
         setTotalAmount(calculatedTotal);
 
-        // Get currency from first invoice (assuming all invoices use same currency)
+    // Get currency from first invoice (assuming all invoices use same currency)
         setCurrency(invoices[0]?.details.currency || "USD");
     }, [invoices]);
 

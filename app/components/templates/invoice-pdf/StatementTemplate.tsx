@@ -29,7 +29,7 @@ const StatementTemplate = (data: StatementData) => {
         item: InvoiceType["details"]["items"][0];
         itemIndex: number;
     };
-
+    
     // Sort invoices by date first
     const sortedInvoices = [...invoices].sort((a, b) => {
         const dateA = a.details.invoiceDate ? new Date(a.details.invoiceDate).getTime() : 0;
@@ -253,7 +253,7 @@ const StatementTemplate = (data: StatementData) => {
                                 );
                             })}
                             {/* Total Row */}
-                            <tr className="bg-gray-100 border-t-2 border-gray-300 font-bold" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                            <tr className="bg-gray-100 border-t-2 border-gray-300 font-bold statement-totals-section" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                 <td className="px-2 py-2 text-xs text-gray-900 border-r border-gray-300"></td>
                                 <td className="px-2 py-2 text-xs text-gray-900 border-r border-gray-300"></td>
                                 <td className="px-2 py-2 text-xs text-gray-900 border-r border-gray-300"></td>
@@ -270,7 +270,7 @@ const StatementTemplate = (data: StatementData) => {
 
                 {/* Bank Details Section */}
                 {bankDetails && bankDetails.length > 0 && (
-                    <div className="mt-3 border-t border-gray-300 pt-2 statement-section">
+                    <div className="mt-3 border-t border-gray-300 pt-2 statement-section statement-payment-section">
                         <p className="text-xs font-semibold text-gray-700 uppercase tracking-widest mb-2">
                             Payment Instructions
                         </p>
@@ -314,7 +314,7 @@ const StatementTemplate = (data: StatementData) => {
                 )}
 
                 {/* Footer with Signature */}
-                <div className="mt-3 border-t border-gray-300 pt-3 statement-section">
+                <div className="mt-3 border-t border-gray-300 pt-3 statement-section statement-footer-section">
                     <div className="flex justify-between items-end">
                         {/* Billing Signature */}
                         <div className="text-left space-y-3">
