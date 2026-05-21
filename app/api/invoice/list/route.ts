@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { InvoiceDocument } from "@/models/Invoice";
+import { InvoiceType } from "@/types";
 import { SHORT_DATE_OPTIONS } from "@/lib/variables";
 import { ObjectId } from "mongodb";
+import { withDefaultBrandAssets } from "@/lib/brandAssets";
 
 export async function GET(req: NextRequest) {
     try {
@@ -46,11 +48,12 @@ export async function GET(req: NextRequest) {
                 ? new Date(updatedAt).toLocaleDateString("en-US", SHORT_DATE_OPTIONS)
                 : new Date().toLocaleDateString("en-US", SHORT_DATE_OPTIONS);
             
+            const branded = withDefaultBrandAssets(invoiceData as InvoiceType);
             return {
-                ...invoiceData,
+                ...branded,
                 id: _id!.toString(),
                 details: {
-                    ...invoiceData.details,
+                    ...branded.details,
                     updatedAt: updatedAtString,
                 },
             };

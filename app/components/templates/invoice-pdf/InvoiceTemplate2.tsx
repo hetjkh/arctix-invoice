@@ -5,6 +5,7 @@ import { InvoiceLayout } from "@/app/components";
 
 // Helpers
 import { formatNumberWithCommas, formatNumberWithCommasNoDecimals, isDataUrl, isImageUrl, formatInvoiceDate } from "@/lib/helpers";
+import { resolveInvoiceLogo, resolveInvoiceSignature } from "@/lib/brandAssets";
 
 // Variables
 import { DATE_OPTIONS } from "@/lib/variables";
@@ -14,6 +15,8 @@ import { InvoiceType } from "@/types";
 
 const InvoiceTemplate2 = (data: InvoiceType) => {
     const { sender, receiver, details } = data;
+    const logoSrc = resolveInvoiceLogo(details.invoiceLogo);
+    const signatureSrc = resolveInvoiceSignature(details.signature?.data);
     
     // Column visibility flags (default to true if not set)
     const showPassengerName = details.showPassengerName !== false;
@@ -45,14 +48,12 @@ const InvoiceTemplate2 = (data: InvoiceType) => {
                     <span className="mt-1 block text-gray-500">
                         {details.invoiceNumber}
                     </span>
-                    {details.invoiceLogo && (
-                        <img
-                            src={details.invoiceLogo}
-                            width={140}
-                            height={100}
-                            alt={`Logo of ${sender.name}`}
-                        />
-                    )}
+                    <img
+                        src={logoSrc}
+                        width={140}
+                        height={100}
+                        alt={`Logo of ${sender.name}`}
+                    />
 
                     <h1 className="mt-2 text-lg md:text-xl font-semibold text-blue-600">
                         {sender.name}
@@ -341,31 +342,28 @@ const InvoiceTemplate2 = (data: InvoiceType) => {
             </div>
 
             {/* Signature */}
-            {details?.signature?.data && isImageUrl(details?.signature?.data) ? (
-                <div className="mt-6">
-                    <p className="font-semibold text-gray-800">Signature:</p>
+            <div className="mt-6">
+                <p className="font-semibold text-gray-800">Signature:</p>
+                {isImageUrl(signatureSrc) ? (
                     <img
-                        src={details.signature.data}
+                        src={signatureSrc}
                         width={120}
                         height={60}
                         alt={`Signature of ${sender.name}`}
                     />
-                </div>
-            ) : details.signature?.data ? (
-                <div className="mt-6">
-                    <p className="text-gray-800">Signature:</p>
+                ) : (
                     <p
                         style={{
                             fontSize: 30,
                             fontWeight: 400,
-                            fontFamily: `${details.signature.fontFamily}, cursive`,
+                            fontFamily: `${details.signature?.fontFamily}, cursive`,
                             color: "black",
                         }}
                     >
-                        {details.signature.data}
+                        {signatureSrc}
                     </p>
-                </div>
-            ) : null}
+                )}
+            </div>
         </InvoiceLayout>
     );
 };

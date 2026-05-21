@@ -1,6 +1,7 @@
 import React from "react";
 import { InvoiceType } from "@/types";
 import { isImageUrl } from "@/lib/helpers";
+import { resolveInvoiceSignature } from "@/lib/brandAssets";
 import ReceiverSignatureSection from "./ReceiverSignatureSection";
 
 type PaymentInstructionsSectionProps = {
@@ -15,16 +16,17 @@ const PaymentInstructionsSection = ({ data }: PaymentInstructionsSectionProps) =
     // Handle both single object and array formats
     const paymentInfoArray = Array.isArray(paymentInfo) ? paymentInfo : paymentInfo ? [paymentInfo] : [];
     const hasPaymentInfo = paymentInfoArray.length > 0;
-    const hasSignature = !!details.signature?.data;
+    const signatureSrc = resolveInvoiceSignature(details.signature?.data);
+    const hasSignature = !!signatureSrc;
 
-    const renderSignature = (signature: NonNullable<typeof details.signature>) => (
+    const renderSignature = () => (
         <div className="flex-shrink-0 ml-auto">
             <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-0.5">
                 Authorized Signature
             </p>
-            {isImageUrl(signature.data) ? (
+            {isImageUrl(signatureSrc) ? (
                 <img
-                    src={signature.data}
+                    src={signatureSrc}
                     width={100}
                     height={50}
                     alt={`Signature of ${sender.name}`}
@@ -34,11 +36,11 @@ const PaymentInstructionsSection = ({ data }: PaymentInstructionsSectionProps) =
                     style={{
                         fontSize: 20,
                         fontWeight: 400,
-                        fontFamily: `${signature.fontFamily || "Dancing Script"}, cursive`,
+                        fontFamily: `${details.signature?.fontFamily || "Dancing Script"}, cursive`,
                         margin: 0,
                     }}
                 >
-                    {signature.data}
+                    {signatureSrc}
                 </p>
             )}
             <p className="text-xs text-gray-600 mt-0.5">{sender.name}</p>
@@ -74,7 +76,7 @@ const PaymentInstructionsSection = ({ data }: PaymentInstructionsSectionProps) =
                     </div>
 
                     {/* Signature on right (only if receiver section is OFF) */}
-                    {hasSignature && details.signature && !showReceiverSection && renderSignature(details.signature)}
+                    {hasSignature && !showReceiverSection && renderSignature()}
                 </div>
             )}
 
@@ -82,14 +84,14 @@ const PaymentInstructionsSection = ({ data }: PaymentInstructionsSectionProps) =
             {showReceiverSection && (
                 <div className="flex justify-between items-start gap-3">
                     <ReceiverSignatureSection data={data} />
-                    {hasSignature && details.signature && renderSignature(details.signature)}
+                    {hasSignature && renderSignature()}
                 </div>
             )}
 
             {/* If no payment info and no receiver section, show signature alone */}
-            {!hasPaymentInfo && !showReceiverSection && hasSignature && details.signature && (
+            {!hasPaymentInfo && !showReceiverSection && hasSignature && (
                 <div className="flex justify-end">
-                    {renderSignature(details.signature)}
+                    {renderSignature()}
                 </div>
             )}
         </div>

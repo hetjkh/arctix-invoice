@@ -188,13 +188,16 @@ const isDataUrl = (str: string) => str.startsWith("data:");
  */
 const isImageUrl = (str: string) => {
     if (!str) return false;
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+    const lowerStr = str.toLowerCase();
     // Check if it's a data URL
     if (str.startsWith("data:")) return true;
     // Check if it's an HTTP/HTTPS URL (likely an image)
     if (str.startsWith("http://") || str.startsWith("https://")) {
-        // Check for common image extensions
-        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
-        const lowerStr = str.toLowerCase();
+        return imageExtensions.some(ext => lowerStr.includes(ext));
+    }
+    // Relative public asset paths (e.g. /assets/logo.png)
+    if (str.startsWith("/")) {
         return imageExtensions.some(ext => lowerStr.includes(ext));
     }
     return false;

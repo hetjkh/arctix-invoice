@@ -14,6 +14,8 @@ import ExcelJS from "exceljs";
 import { flattenObject, formatNumberWithCommas, formatNumberWithCommasNoDecimals, isImageUrl, isDataUrl } from "@/lib/helpers";
 import { DATE_OPTIONS } from "@/lib/variables";
 import { formatInvoiceDate } from "@/lib/helpers";
+import { resolveInvoiceLogo, resolveInvoiceSignature } from "@/lib/brandAssets";
+import { readPublicAssetBuffer } from "@/lib/brandAssets.server";
 
 // Types
 import { ExportTypes } from "@/types";
@@ -101,28 +103,37 @@ export async function exportInvoiceService(req: NextRequest) {
                     headerRow.height = 20;
                     
                     // Left side - Logo and Sender Name
-                    if (details.invoiceLogo) {
+                    const invoiceLogo = resolveInvoiceLogo(details.invoiceLogo);
+                    if (invoiceLogo) {
                         try {
                             let imageBuffer: Buffer;
                             let imageExtension = 'png';
                             
-                            if (isDataUrl(details.invoiceLogo)) {
+                            if (invoiceLogo.startsWith("/assets/")) {
+                                const buffer = readPublicAssetBuffer(invoiceLogo);
+                                if (!buffer) throw new Error("Failed to read logo asset");
+                                imageBuffer = buffer;
+                                const urlLower = invoiceLogo.toLowerCase();
+                                if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) {
+                                    imageExtension = 'jpg';
+                                }
+                            } else if (isDataUrl(invoiceLogo)) {
                                 // Handle base64 data URL
-                                const match = details.invoiceLogo.match(/^data:image\/(\w+);base64,/);
+                                const match = invoiceLogo.match(/^data:image\/(\w+);base64,/);
                                 if (match) {
                                     imageExtension = match[1] === 'jpeg' ? 'jpg' : match[1];
                                 }
-                                const base64Data = details.invoiceLogo.replace(/^data:image\/\w+;base64,/, '');
+                                const base64Data = invoiceLogo.replace(/^data:image\/\w+;base64,/, '');
                                 imageBuffer = Buffer.from(base64Data, 'base64');
-                            } else if (isImageUrl(details.invoiceLogo)) {
+                            } else if (isImageUrl(invoiceLogo)) {
                                 // Handle image URL - fetch it
-                                const response = await fetch(details.invoiceLogo);
+                                const response = await fetch(invoiceLogo);
                                 if (response.ok) {
                                     const arrayBuffer = await response.arrayBuffer();
                                     imageBuffer = Buffer.from(arrayBuffer);
                                     
                                     // Try to detect extension from URL
-                                    const urlLower = details.invoiceLogo.toLowerCase();
+                                    const urlLower = invoiceLogo.toLowerCase();
                                     if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) {
                                         imageExtension = 'jpg';
                                     } else if (urlLower.includes('.png')) {
@@ -559,34 +570,43 @@ export async function exportInvoiceService(req: NextRequest) {
                         currentRow++;
                     }
                     
-                    if (details.signature?.data) {
+                    const signatureData = resolveInvoiceSignature(details.signature?.data);
+                    if (signatureData) {
                         sheet.getCell(currentRow, totalsCol).value = "Authorized Signature";
                         sheet.getCell(currentRow, totalsCol).font = { size: 10, bold: true };
                         currentRow++;
                         
                         // Check if signature is an image
-                        if (isImageUrl(details.signature.data)) {
+                        if (isImageUrl(signatureData)) {
                             try {
                                 let signatureBuffer: Buffer;
                                 let signatureExtension = 'png';
                                 
-                                if (isDataUrl(details.signature.data)) {
+                                if (signatureData.startsWith("/assets/")) {
+                                    const buffer = readPublicAssetBuffer(signatureData);
+                                    if (!buffer) throw new Error("Failed to read signature asset");
+                                    signatureBuffer = buffer;
+                                    const urlLower = signatureData.toLowerCase();
+                                    if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) {
+                                        signatureExtension = 'jpg';
+                                    }
+                                } else if (isDataUrl(signatureData)) {
                                     // Handle base64 data URL
-                                    const match = details.signature.data.match(/^data:image\/(\w+);base64,/);
+                                    const match = signatureData.match(/^data:image\/(\w+);base64,/);
                                     if (match) {
                                         signatureExtension = match[1] === 'jpeg' ? 'jpg' : match[1];
                                     }
-                                    const base64Data = details.signature.data.replace(/^data:image\/\w+;base64,/, '');
+                                    const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, '');
                                     signatureBuffer = Buffer.from(base64Data, 'base64');
                                 } else {
                                     // Handle image URL - fetch it
-                                    const response = await fetch(details.signature.data);
+                                    const response = await fetch(signatureData);
                                     if (response.ok) {
                                         const arrayBuffer = await response.arrayBuffer();
                                         signatureBuffer = Buffer.from(arrayBuffer);
                                         
                                         // Try to detect extension from URL
-                                        const urlLower = details.signature.data.toLowerCase();
+                                        const urlLower = signatureData.toLowerCase();
                                         if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) {
                                             signatureExtension = 'jpg';
                                         } else if (urlLower.includes('.png')) {
@@ -619,13 +639,13 @@ export async function exportInvoiceService(req: NextRequest) {
                             } catch (signatureError) {
                                 console.error("Error adding signature image to Excel:", signatureError);
                                 // Fallback to text if image fails
-                                sheet.getCell(currentRow, totalsCol).value = details.signature.data;
+                                sheet.getCell(currentRow, totalsCol).value = signatureData;
                                 sheet.getCell(currentRow, totalsCol).font = { size: 12 };
                                 currentRow++;
                             }
                         } else {
                             // Text signature
-                            sheet.getCell(currentRow, totalsCol).value = details.signature.data;
+                            sheet.getCell(currentRow, totalsCol).value = signatureData;
                             sheet.getCell(currentRow, totalsCol).font = { 
                                 size: 12,
                                 name: details.signature.fontFamily || 'cursive'

@@ -29,6 +29,12 @@ import {
   LOCAL_STORAGE_INVOICE_DRAFT_KEY,
 } from "@/lib/variables";
 
+// Brand assets
+import {
+  DEFAULT_INVOICE_LOGO,
+  DEFAULT_INVOICE_SIGNATURE,
+} from "@/lib/brandAssets";
+
 // Helpers
 import { getCurrentInvoiceNumber, getNextInvoiceNumber } from "@/lib/helpers";
 
@@ -76,6 +82,25 @@ const Providers = ({ children }: ProvidersProps) => {
     defaultValues: FORM_DEFAULT_VALUES,
   });
 
+  // Always use fixed company logo and signature on every invoice
+  useEffect(() => {
+    form.setValue("details.invoiceLogo", DEFAULT_INVOICE_LOGO);
+    form.setValue("details.signature.data", DEFAULT_INVOICE_SIGNATURE);
+    const subscription = form.watch((value) => {
+      if (value.details?.invoiceLogo !== DEFAULT_INVOICE_LOGO) {
+        form.setValue("details.invoiceLogo", DEFAULT_INVOICE_LOGO, {
+          shouldDirty: false,
+        });
+      }
+      if (value.details?.signature?.data !== DEFAULT_INVOICE_SIGNATURE) {
+        form.setValue("details.signature.data", DEFAULT_INVOICE_SIGNATURE, {
+          shouldDirty: false,
+        });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   // Hydrate once on mount
   useEffect(() => {
     const draft = readDraftFromLocalStorage();
@@ -86,16 +111,11 @@ const Providers = ({ children }: ProvidersProps) => {
         sender: FORM_DEFAULT_VALUES.sender,
         details: {
           ...draft.details,
-          // Clear old default logo URLs if they exist
-          invoiceLogo: (draft.details?.invoiceLogo && draft.details.invoiceLogo.trim() !== "" && 
-            !draft.details.invoiceLogo.includes("res.cloudinary.com")) 
-            ? draft.details.invoiceLogo 
-            : "",
-          // Clear old default signature URLs if they exist
-          signature: (draft.details?.signature?.data && draft.details.signature.data.trim() !== "" && 
-            !draft.details.signature.data.includes("res.cloudinary.com"))
-            ? draft.details.signature
-            : { data: "" },
+          invoiceLogo: DEFAULT_INVOICE_LOGO,
+          signature: {
+            ...draft.details?.signature,
+            data: DEFAULT_INVOICE_SIGNATURE,
+          },
           // Auto-generate invoice number if empty (use current number, don't increment)
           invoiceNumber: (draft.details?.invoiceNumber && draft.details.invoiceNumber.trim() !== "")
             ? draft.details.invoiceNumber

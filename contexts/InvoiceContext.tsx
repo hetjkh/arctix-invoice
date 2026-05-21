@@ -34,6 +34,14 @@ import {
   LOCAL_STORAGE_INVOICE_DRAFT_KEY,
 } from "@/lib/variables";
 
+// Brand assets
+import {
+  withDefaultBrandAssets,
+  withDefaultBrandAssetsList,
+  DEFAULT_INVOICE_LOGO,
+  DEFAULT_INVOICE_SIGNATURE,
+} from "@/lib/brandAssets";
+
 // Helpers
 import { getNextInvoiceNumber } from "@/lib/helpers";
 
@@ -116,7 +124,7 @@ export const InvoiceContextProvider = ({
           const response = await fetch("/api/invoice/list?limit=5&skip=0");
           if (response.ok) {
             const data = await response.json();
-            setSavedInvoices(data.invoices || []);
+            setSavedInvoices(withDefaultBrandAssetsList(data.invoices || []));
             setHasMoreInvoices(data.hasMore || false);
             setTotalInvoiceCount(data.totalCount || 0);
           } else {
@@ -140,7 +148,7 @@ export const InvoiceContextProvider = ({
             const savedInvoicesDefault = savedInvoicesJSON
               ? JSON.parse(savedInvoicesJSON)
               : [];
-            setSavedInvoices(savedInvoicesDefault);
+            setSavedInvoices(withDefaultBrandAssetsList(savedInvoicesDefault));
             setHasMoreInvoices(false);
             setTotalInvoiceCount(savedInvoicesDefault.length);
           } catch (error) {
@@ -167,7 +175,10 @@ export const InvoiceContextProvider = ({
       const response = await fetch(`/api/invoice/list?limit=5&skip=${savedInvoices.length}`);
       if (response.ok) {
         const data = await response.json();
-        setSavedInvoices((prev) => [...prev, ...(data.invoices || [])]);
+        setSavedInvoices((prev) => [
+          ...prev,
+          ...withDefaultBrandAssetsList(data.invoices || []),
+        ]);
         setHasMoreInvoices(data.hasMore || false);
       }
     } catch (error) {
@@ -215,7 +226,7 @@ export const InvoiceContextProvider = ({
             }
             
             // Reset form with invoice data
-            reset(invoice);
+            reset(withDefaultBrandAssets(invoice));
             
             // Remove query parameter from URL
             const url = new URL(window.location.href);
@@ -239,7 +250,7 @@ export const InvoiceContextProvider = ({
       try {
         window.localStorage.setItem(
           LOCAL_STORAGE_INVOICE_DRAFT_KEY,
-          JSON.stringify(value)
+          JSON.stringify(withDefaultBrandAssets(value as InvoiceType))
         );
       } catch {}
     });
@@ -264,7 +275,7 @@ export const InvoiceContextProvider = ({
     console.log(data);
 
     // Call generate pdf method
-    generatePdf(data);
+    generatePdf(withDefaultBrandAssets(data));
   };
 
   /**
@@ -402,7 +413,7 @@ export const InvoiceContextProvider = ({
     if (invoicePdf) {
       // If get values function is provided, allow to save the invoice
       if (getValues) {
-        const formValues = getValues();
+        const formValues = withDefaultBrandAssets(getValues());
         const updatedDate = new Date().toLocaleDateString(
           "en-US",
           SHORT_DATE_OPTIONS
@@ -544,7 +555,7 @@ export const InvoiceContextProvider = ({
               });
               if (listResponse.ok) {
                 const data = await listResponse.json();
-                setSavedInvoices(data.invoices || []);
+                setSavedInvoices(withDefaultBrandAssetsList(data.invoices || []));
                 setHasMoreInvoices(data.hasMore || false);
                 setTotalInvoiceCount(data.totalCount || 0);
               } else {

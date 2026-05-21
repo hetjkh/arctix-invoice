@@ -9,6 +9,9 @@ import StatementTemplate from "@/app/components/templates/invoice-pdf/StatementT
 // Variables
 import { ENV, TAILWIND_CDN } from "@/lib/variables";
 
+// Brand assets (server)
+import { prepareInvoiceForPdf } from "@/lib/brandAssets.server";
+
 // Types
 import { InvoiceType } from "@/types";
 
@@ -56,9 +59,17 @@ export async function generateStatementService(req: NextRequest) {
     }
 
     try {
+        const preparedInvoices = invoices.map(prepareInvoiceForPdf);
         const ReactDOMServer = (await import("react-dom/server")).default;
         const htmlTemplate = ReactDOMServer.renderToStaticMarkup(
-            StatementTemplate({ invoices, title, billedToName, statementDateFrom, statementDateTo, bankDetails })
+            StatementTemplate({
+                invoices: preparedInvoices,
+                title,
+                billedToName,
+                statementDateFrom,
+                statementDateTo,
+                bankDetails,
+            })
         );
 
         if (ENV === "production") {

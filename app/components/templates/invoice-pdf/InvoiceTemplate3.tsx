@@ -6,6 +6,7 @@ import PaymentInstructionsSection from "./PaymentInstructionsSection";
 
 // Helpers
 import { formatNumberWithCommas, formatNumberWithCommasNoDecimals, isDataUrl, isImageUrl, formatInvoiceDate } from "@/lib/helpers";
+import { resolveInvoiceLogo, resolveInvoiceSignature } from "@/lib/brandAssets";
 import { DATE_OPTIONS } from "@/lib/variables";
 
 // Types
@@ -13,6 +14,8 @@ import { InvoiceType } from "@/types";
 
 const InvoiceTemplate = (data: InvoiceType) => {
   const { sender, receiver, details } = data;
+  const logoSrc = resolveInvoiceLogo(details.invoiceLogo);
+  const signatureSrc = resolveInvoiceSignature(details.signature?.data);
 
   const itinerary = details.items || [];
   const showVat = details.showVat || false;
@@ -90,14 +93,12 @@ const InvoiceTemplate = (data: InvoiceType) => {
         {/* Header */}
         <div className="flex flex-wrap justify-between items-start gap-6">
           <div className="max-w-xs space-y-2">
-            {details.invoiceLogo && (
-              <img
-                src={details.invoiceLogo}
-                width={120}
-                height={68}
-                alt={`Logo of ${sender.name}`}
-              />
-            )}
+            <img
+              src={logoSrc}
+              width={120}
+              height={68}
+              alt={`Logo of ${sender.name}`}
+            />
             <h1 className="text-2xl font-semibold uppercase tracking-wide text-gray-800">
               {sender.name}
             </h1>

@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { InvoiceDocument } from "@/models/Invoice";
 import { InvoiceType } from "@/types";
 import { ObjectId } from "mongodb";
+import { withDefaultBrandAssets } from "@/lib/brandAssets";
 
 export async function POST(req: NextRequest) {
     try {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const invoiceData: InvoiceType = await req.json();
+        const invoiceData: InvoiceType = withDefaultBrandAssets(await req.json());
 
         const db = await getDb();
         const invoicesCollection = db.collection<InvoiceDocument>("invoices");

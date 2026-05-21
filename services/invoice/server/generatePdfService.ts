@@ -9,6 +9,9 @@ import { getInvoiceTemplate } from "@/lib/helpers";
 // Variables
 import { ENV, TAILWIND_CDN } from "@/lib/variables";
 
+// Brand assets (server)
+import { prepareInvoiceForPdf } from "@/lib/brandAssets.server";
+
 // Types
 import { InvoiceType } from "@/types";
 
@@ -22,15 +25,16 @@ import { InvoiceType } from "@/types";
  */
 export async function generatePdfService(req: NextRequest) {
     const body: InvoiceType = await req.json();
+    const preparedBody = prepareInvoiceForPdf(body);
     let browser;
     let page;
 
     try {
         const ReactDOMServer = (await import("react-dom/server")).default;
-        const templateId = body.details.pdfTemplate;
+        const templateId = preparedBody.details.pdfTemplate;
         const InvoiceTemplate = await getInvoiceTemplate(templateId);
         const htmlTemplate = ReactDOMServer.renderToStaticMarkup(
-            InvoiceTemplate(body)
+            InvoiceTemplate(preparedBody)
         );
 
 		if (ENV === "production") {

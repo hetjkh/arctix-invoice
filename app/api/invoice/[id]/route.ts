@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { InvoiceDocument } from "@/models/Invoice";
 import { ObjectId } from "mongodb";
+import { withDefaultBrandAssets } from "@/lib/brandAssets";
+import { InvoiceType } from "@/types";
 
 export async function GET(
     req: NextRequest,
@@ -45,10 +47,12 @@ export async function GET(
         // Remove MongoDB-specific fields
         const { _id, userId, createdAt, updatedAt, ...invoiceData } = invoice;
 
+        const branded = withDefaultBrandAssets(invoiceData as InvoiceType);
+
         return NextResponse.json(
             {
                 invoice: {
-                    ...invoiceData,
+                    ...branded,
                     id: _id!.toString(),
                 },
             },

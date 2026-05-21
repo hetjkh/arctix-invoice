@@ -1,6 +1,12 @@
 // Types
 import { SignatureColor, SignatureFont } from "@/types";
 
+// Brand assets
+import {
+  DEFAULT_INVOICE_LOGO,
+  DEFAULT_INVOICE_SIGNATURE,
+} from "@/lib/brandAssets";
+
 /**
  * Environment
  */
@@ -137,7 +143,7 @@ export const FORM_DEFAULT_VALUES = {
     customInputs: [],
   },
   details: {
-    invoiceLogo: "",
+    invoiceLogo: DEFAULT_INVOICE_LOGO,
     invoiceNumber: "",
     invoiceDate: "",
     numberOfPassengers: 1,
@@ -185,7 +191,7 @@ export const FORM_DEFAULT_VALUES = {
     showServiceType: true,
     showAmount: true,
     signature: {
-      data: "",
+      data: DEFAULT_INVOICE_SIGNATURE,
     },
   },
 };
